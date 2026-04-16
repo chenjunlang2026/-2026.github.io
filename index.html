@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文魂·中国士人人格谱系 | 古BTI</title>
+  <!-- 引入ECharts用于雷达图 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* 暗黑国风核心配色 */
+    :root {
+      --bg: #0F0F12;
+      --paper: #18181D;
+      --text-main: #E6E6E6;
+      --text-sub: #8A8A91;
+      --vermilion: #C43C3C;
+      --vermilion-light: rgba(196, 60, 60, 0.2);
+      --border: #2A2A32;
+      --hover: #23232B;
+    }
+
+    body {
+      font-family: "思源宋体", "霞鹜文楷", serif;
+      background: var(--bg);
+      color: var(--text-main);
+      line-height: 1.7;
+      padding: 20px;
+      background-image: 
+        radial-gradient(circle at 20% 30%, rgba(196, 60, 60, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(196, 60, 60, 0.03) 0%, transparent 50%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 768px;
+      margin: 0 auto;
+    }
+
+    .page {
+      display: none;
+      animation: fade 0.6s ease;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    @keyframes fade {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 封面 */
+    .cover {
+      text-align: center;
+      padding: 80px 0;
+    }
+
+    .cover h1 {
+      font-size: 56px;
+      letter-spacing: 12px;
+      margin-bottom: 10px;
+      color: var(--vermilion);
+      text-shadow: 0 0 20px rgba(196, 60, 60, 0.3);
+      font-weight: normal;
+    }
+
+    .cover .subtitle {
+      font-size: 18px;
+      color: var(--text-sub);
+      margin-bottom: 50px;
+      letter-spacing: 2px;
+    }
+
+    .intro {
+      text-align: left;
+      margin: 30px 0;
+      color: var(--text-main);
+      white-space: pre-line;
+      line-height: 1.9;
+      background: var(--paper);
+      padding: 24px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .notice {
+      background: var(--paper);
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--text-sub);
+      margin: 20px 0;
+      border-left: 3px solid var(--vermilion);
+    }
+
+    .btn {
+      padding: 14px 40px;
+      background: var(--vermilion);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: all 0.3s;
+      letter-spacing: 2px;
+    }
+
+    .btn:hover {
+      background: #A83232;
+      box-shadow: 0 0 15px rgba(196, 60, 60, 0.4);
+    }
+
+    /* 题目页 */
+    .progress {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-bottom: 40px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: var(--vermilion);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .section {
+      font-size: 14px;
+      color: var(--text-sub);
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+
+    .question-title {
+      font-size: 22px;
+      margin-bottom: 30px;
+      font-weight: 500;
+      line-height: 1.6;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .option {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--text-main);
+    }
+
+    .option:hover {
+      background: var(--hover);
+      border-color: var(--vermilion);
+    }
+
+    .option.selected {
+      background: var(--hover);
+      border-color: var(--vermilion);
+      box-shadow: 0 0 10px rgba(196, 60, 60, 0.2);
+    }
+
+    /* 结果页 */
+    .result-header {
+      text-align: center;
+      margin: 50px 0;
+    }
+
+    .result-word {
+      font-size: 100px;
+      color: var(--vermilion);
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-shadow: 0 0 30px rgba(196, 60, 60, 0.4);
+      line-height: 1;
+    }
+
+    .result-name {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .result-poet {
+      font-size: 18px;
+      color: var(--text-sub);
+      margin-bottom: 20px;
+    }
+
+    .result-message {
+      font-size: 18px;
+      color: var(--text-main);
+      margin-bottom: 40px;
+      padding: 0 20px;
+      line-height: 1.8;
+    }
+
+    /* 九维雷达图容器 */
+    .radar-container {
+      background: var(--paper);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 30px 0;
+      border: 1px solid var(--border);
+    }
+
+    .radar-title {
+      text-align: center;
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: var(--vermilion);
+    }
+
+    .result-section {
+      margin: 30px 0;
+      background: var(--paper);
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .result-section h3 {
+      font-size: 18px;
+      margin-bottom: 12px;
+      color: var(--vermilion);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .result-text {
+      white-space: pre-line;
+      color: var(--text-main);
+      line-height: 1.8;
+    }
+
+    .share {
+      text-align: center;
+      margin: 50px 0;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-sub);
+      margin-top: 60px;
+      line-height: 1.6;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* 测谎提示 */
+    .lie-warning {
+      text-align: center;
+      padding: 100px 20px;
+      font-size: 20px;
+      color: var(--vermilion);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- 封面 -->
+    <div class="page active" id="page-cover">
+      <div class="cover">
+        <h1>文魂</h1>
+        <div class="subtitle">中国士人人格谱系 · 古BTI</div>
+        <div class="intro" id="introduction"></div>
+        <div class="notice" id="notice"></div>
+        <button class="btn" onclick="startTest()">开始测试</button>
+      </div>
+    </div>
+
+    <!-- 测试页 -->
+    <div class="page" id="page-test">
+      <div class="progress"><div class="progress-bar" id="progress"></div></div>
+      <div class="section" id="section"></div>
+      <div class="question-title" id="question"></div>
+      <div class="options" id="options"></div>
+      <button class="btn" onclick="nextQuestion()" style="margin-top:30px">下一题</button>
+    </div>
+
+    <!-- 测谎提示页 -->
+    <div class="page" id="page-lie">
+      <div class="lie-warning" id="lie-tip"></div>
+      <button class="btn" onclick="startTest()" style="display:block;margin:0 auto">重新测试</button>
+    </div>
+
+    <!-- 结果页 -->
+    <div class="page" id="page-result">
+      <div class="result-header">
+        <div class="result-word" id="r-word"></div>
+        <div class="result-name" id="r-name"></div>
+        <div class="result-poet" id="r-poet"></div>
+        <div class="result-message" id="r-msg"></div>
+      </div>
+
+      <!-- 九维人格雷达图 -->
+      <div class="radar-container">
+        <div class="radar-title">你的九维文魂人格</div>
+        <div id="radar-chart" style="width: 100%; height: 400px;"></div>
+      </div>
+
+      <div class="result-section">
+        <h3>为什么是你？</h3>
+        <div class="result-text" id="r-reason"></div>
+      </div>
+
+      <div class="result-section">
+        <h3>你的灵魂画像</h3>
+        <div class="result-text" id="r-main"></div>
+      </div>
+
+      <div class="result-section">
+        <h3>灵魂金句</h3>
+        <div class="result-text" id="r-quote"></div>
+      </div>
+
+      <div class="result-section">
+        <h3>我懂你</h3>
+        <div class="result-text" id="r-empathy"></div>
+      </div>
+
+      <div class="result-section">
+        <h3>最后想说</h3>
+        <div class="result-text" id="r-ending"></div>
+      </div>
+
+      <div class="share">
+        <button class="btn" onclick="shareResult()">生成分享语</button>
+        <div id="share-text" style="margin-top:16px; font-size:14px; color:var(--text-sub); background:var(--paper); padding:12px; border-radius:6px;"></div>
+      </div>
+
+      <div class="footer" id="footer"></div>
+    </div>
+  </div>
+
+  <script>
+    const data = {
+      "title": "文魂·中国士人人格谱系",
+      "subtitle": "古BTI",
+      "introduction": "一千三百年前，李白在长安的酒肆里举杯。九百年前，苏轼在黄州的雨中独行。八百年前，辛弃疾在江西的孤灯下看剑。他们从未见过你。但他们懂得你。\n\n这套量表的本质，是一场跨越千年的灵魂匹配。我们提炼出中国士人人格的九个核心维度，不是为了给你贴学术标签——而是通过这些维度，从十六位中国古代文人中，找到与你灵魂轮廓最相似的那一位。\n\n你不是“测”出苏轼或杜甫。你本来就是某一种活法。这套测试只是递上一面镜子，让你看见：看，很久以前，有人和你一样。\n\n一套好的测试，不是给你贴一个标签，而是递上一面镜子。让你看见自己灵魂的轮廓，然后告诉你：看，很久以前，有人和你一样。",
+      "notice": "共24题，约需6-8分钟。每题5个选项，从A到E分别计1-5分。标注【R】的题目为反向计分。请根据日常真实状态作答，而非“理想中的自己”。第24题为测谎题。",
+      "reverseQuestions": [4,7,11,15,19],
+      "questions": [
+        {"id":1,"section":"处世之态","title":"被扔去偏远分公司，你内心的第一句台词是——","options":["臣冤枉。臣真的冤枉。臣写了三千字陈情表您看了吗。","妙极。正愁没有素材写《贬谪风物记》卷三。","来都来了。先把当地水利修了。","归去来兮。田园将芜胡不归。","此乃天将降大任于斯人也。升迁倒计时开始。"]},
+        {"id":2,"section":"处世之态","title":"朋友两眼放光找你创业，你的本能反应是——","options":["累鼠我了。仰天大笑躺大平。","死道友不死贫道。你们先冲，我殿后。","心动，但被窝和周末不同意。","容我三思。思完了。算我一个。","青山一道同风雨。拉群。现在立刻马上。"]},
+        {"id":3,"section":"处世之态","title":"半年的努力差一分黄了。朋友小心翼翼问没事吧，你说——","options":["没事。（眼神已死，心在滴血）","唉，容我躺几天回血。","可惜。不过正好把买了半年没翻的书看了。","命里无时莫强求。老板，再来十串羊肉串。","只差一分！说明我和成功之间的距离比我和手机还短！"]},
+        {"id":4,"section":"处世之态","title":"【R】饭局上有个半生不熟的人嘴了你一句，你会——","options":["血压飙到一百八。脑子里已经吵完了整场架。","记小本本上了。虽然这小本本并不实际存在。","笑着化解。但心里那根刺三天没拔出来。","他若说得对，我改。说得不对，他自己消业。","笑死。他原话怎么说的？你再学一遍我听听。"]},
+        {"id":5,"section":"感知之度","title":"陌生城市里，最让你走不动道的是——","options":["点评只有三条、藏在巷子尽头的苍蝇馆子","当地人买菜的老街。空气里飘着八角茴香和人间","一堵老墙。砖缝里塞满了时间","城市最高处。天际线在脚下铺开","站在某个拐角，突然和一句古诗迎面相撞"]},
+        {"id":6,"section":"感知之度","title":"聚会上有人讲了个笑话，满桌都笑了。你——","options":["礼貌微笑.jpg。内心毫无波动。","跟着笑一笑。气氛组基本素养。","正常笑。节奏和大家保持一致。","笑得最大声，并附赠一个更离谱的续集。","沉默三秒。然后把这个笑话改编成了2.0版本，把讲笑话的人也逗笑了。"]},
+        {"id":7,"section":"感知之度","title":"【R】站在一幅画前，你最先注意到的是——","options":["这笔触。这技法。这构图。专业。","角落里那个小人。桌上那只碗。画家藏了多少细节。","整体色调。舒服还是压抑。身体先知道。","画家当时什么心境。想说什么又没说的话。","这幅画让我想起了某个人。某个黄昏。某件忘了很久的事。"]},
+        {"id":8,"section":"感知之度","title":"你发朋友圈的姿势通常是——","options":["半年一条。主要证明我还活着。","字斟句酌。发完还要检查三遍错别字。","随手记录。今天吃了啥看到啥想到啥。","文案里埋一两个梗。等特定的人来破译。","朋友圈即我的单口相声专场。每一条都是创作。"]},
+        {"id":9,"section":"情感之度","title":"和最重要的朋友闹掰半年。某天Ta突然发来一条消息，你会——","options":["已读。不回。但那条消息反复看了七遍。","回了两个字“收到”。心里其实有一万句。","正常聊。谁都没提那件事。像什么都没发生过。","聊着聊着主动开口：其实那件事，我一直想跟你说。","电话直接打过去。接通后双方沉默三秒，同时开口：对不起。"]},
+        {"id":10,"section":"情感之度","title":"上司让你在汇报里“稍微润色”一组不准的数据。你会——","options":["照做。上司都说了。","照做。但在备注里用六号字标了原始数据。","委婉表达：这样可能不太好。","明确拒绝。并给出另一种呈现方式。","这活儿我干不了。您另请高明吧。微笑但坚定。"]},
+        {"id":11,"section":"情感之度","title":"【R】深夜读到一首写离别的诗，你的状态是——","options":["理性分析：这个意象用得妙。那个字炼得绝。","能理解诗人的情绪。但不往自己身上扯。","心里微微一动。某个告别的下午忽然浮上来。","眼眶发热。诗里的画面和记忆叠在一起。","放下手机，很久没说话。那首诗把你的情绪翻了个底朝天。"]},
+        {"id":12,"section":"情感之度","title":"朋友在你面前说另一个朋友的坏话，而你觉得有失公道。你会——","options":["沉默听着。不参与不站队。","可能他也有他的难处吧。","我觉得你这样说不太公平。","当场反驳。把你看到的另一面摆出来。","当场反驳。事后截图告诉被说的那个朋友：你看看这人。"]},
+        {"id":13,"section":"心性之度","title":"周五已把周末安排得明明白白。周六早上朋友来电：开车去海边，现在就走。你会——","options":["不去。计划定了就是定了。","心动。但先打开小红书搜攻略和避雷贴。","想了想。把安排往后挪了挪。走。","十分钟收拾好。上车。","人已在车上。目的地在哪路上再说。"]},
+        {"id":14,"section":"心性之度","title":"一个人吃饭、一个人看电影、一个人旅行，你——","options":["不自在。总想找个人陪。","可以。但有人一起更好。","挺享受。和有人陪是两种不同的快乐。","经常这样。自由得很。","万人如海一身藏。人群里最自在。独处时最丰盈。"]},
+        {"id":15,"section":"心性之度","title":"【R】一群人在聊一个话题，你的观点和所有人相反。你会——","options":["跟着点头。你们开心就好。","弱弱说一句“我有个不太成熟的想法”，随时准备撤回。","说出观点，简单解释。当然你们说的也有道理。","说出观点并认真解释。场面一度变成辩论赛。","说出观点，解释完。还有谁要反驳？一个一个来。"]},
+        {"id":16,"section":"心性之度","title":"有人评价你“你这人有点奇怪”，你——","options":["很在意。回去反思了一晚上哪里奇怪。","有点在意。但不打算改。","无所谓。谁还没点奇怪。","笑着回：对啊。限量版。","没被人这么评价过。或者评价了我压根没注意。"]},
+        {"id":17,"section":"格局之度","title":"独坐孤舟，江上垂钓。你的心境更接近——","options":["怎么还没鱼。有点无聊。","风景不错。拍一张。","有点孤独。但感觉也不坏。","钓的不是鱼。是一种心境。","孤舟蓑笠翁，独钓寒江雪。和柳宗元隔着时空对望。"]},
+        {"id":18,"section":"格局之度","title":"给你一笔钱，这辈子不用再工作了。你会——","options":["继续现在的工作。我挺喜欢我的工作。","换更轻松的活法。只做自己喜欢的项目。","不干了。旅行读书学各种想学的东西。","用这笔钱做一件一直想做但没资源的事。","钱不是重点。重点是终于可以光明正大地说：我的职业是生活家。"]},
+        {"id":19,"section":"格局之度","title":"【R】仰望星空的时候，你脑子里通常在想——","options":["脖子酸了。风大。回吧。","星星挺好看。能认出星座就更好。","宇宙真大。我们这点破事算个啥。","时间有尽头吗。我们真的是孤独的吗。","已经在打腹稿了。想写一首关于星星的诗。"]},
+        {"id":20,"section":"格局之度","title":"你觉得自己和“古人”的关系是——","options":["没什么关系。他们活他们的。我活我的。","偶尔读他们的诗。写得挺好。","在某些时刻。某句诗突然冒出来。觉得他懂我。","我经常觉得。我和某个古人本质上是同一种人。","他们不是古人。是另一个时空里替我活过一次的人。"]},
+        {"id":21,"section":"锚定题","title":"给后世留一句话，你会选——","options":["一蓑烟雨任平生","天生我材必有用","大庇天下寒士俱欢颜","问君能有几多愁，恰似一江春水向东流","此中有真意，欲辨已忘言"]},
+        {"id":22,"section":"锚定题","title":"你希望自己成为一个怎样的人——","options":["值得信赖的人","活得精彩的人","内心平静的人","留下点什么的人","不用定义自己、自由流动的人"]},
+        {"id":23,"section":"锚定题","title":"朋友找你倾诉烦恼，你通常——","options":["帮Ta分析问题，给解决方案","先听完，再给建议","主要是听。偶尔回应。让Ta把情绪倒出来","和Ta一起吐槽。先把气出了再说","什么都不说。就陪着。有时候陪伴就够了。"]},
+        {"id":24,"section":"测谎题","title":"以上所有题目，我都如实作答，没有刻意选择“看起来更好”的选项。","options":["非常不像我——我承认有些题我选了更体面的选项","不像我","不确定","有点像我","非常像我——我对每一题都完全诚实"]}
+      ],
+      "resultsFullText": [
+        {"poet":"苏轼","typeName":"人间清欢","word":"活","message":"你把苦酿成了酒，把贬谪活成了度假。九百年前有人这样活过，你不孤独。","reason":"你的“旷达度”和“机趣度”得分极高，“入世度”也远高于常人。你既关心世界，又不被世界的重量压垮。面对挫折，你的第一反应不是沉溺，而是转念——把坏事变成段子，把烂牌打成素材。这正是苏轼人格的核心。","mainText":"你是那种把人生当食材的人。有的日子是东坡肉，文火慢炖；有的日子是荔枝，甜得不管不顾。最难的日子，你把它酿成了酒。朋友都爱找你，不是因为你永远乐观，是因为你可以在最丧的时候说一句“害，多大点事”，然后两个人笑着把苦咽下去。","soulQuote":"人生缘何不快乐，只因未读苏东坡。","empathy":"其实我们知道。你的“没事”，有时候是真的有事。你只是很早就学会了——与其让人担心，不如活成一个让人放心的笑话。九百年前，有个人被贬到黄州，穷得吃不起肉，就研究怎么把猪肉炖得好吃。别人问他苦不苦，他写诗说：“自笑平生为口忙。”他把所有苦都嚼碎了咽下去，然后笑着跟你说：味道还行。这条路，苏轼走过。你不孤独。","ending":"愿你一生，被贬的次数少，发明的菜多。下次被生活泼冷水的时候，记得打开冰箱，看看里面还有什么能炖的。","shareCard":"我测出来是人间清欢·苏轼型。他说我“被贬的次数少，发明的菜多”。你呢？"},
+        {"poet":"李白","typeName":"逍遥谪仙","word":"飞","message":"地上的规矩配不上天上的你。一千三百年前有人也这么活着，他把孤独活成了盛宴。","reason":"你的“气象度”和“率性度”双双顶格，“天地度”也极高。你看世界的尺度比别人大，做决定时凭直觉多于算计。在人群中你常常觉得频率不对——不是你不合群，是你的坐标系和大多数人不同。","mainText":"你是那种人来地球一趟，像是来采风的人。别人埋头赶路，你抬头看云。不是狂妄，是地上的规则真的不配定义你。你的精神故乡在九天之上，在银河左岸，在那杯还没喝完的酒里。","soulQuote":"绣口一吐，就是半个盛唐。","empathy":"其实我们知道。你也怀疑过自己是不是太飘了。一千三百年前，有个人被排挤出长安，骑着驴走在山路上，抬头看见月亮，就忘了自己是被贬的。他写：“举杯邀明月，对影成三人。”他把孤独活成了一场盛宴。你不合群，不是你的问题。是地上的规矩，配不上天上的你。","ending":"才华是你的，别都用来写辞职信。但如果非写不可——记得用狂草，写完了还要拍在桌上，仰天大笑出门去。","shareCard":"我测出来是逍遥谪仙·李白型。他说我“才华是你的，别都用来写辞职信”。你呢？"},
+        {"poet":"杜甫","typeName":"家国砥柱","word":"扛","message":"你的心里住着一整个天下。累，但值。一千二百年前有人也这么扛着，他成了诗圣。","reason":"你的“入世度”“深情度”“风骨度”都接近满分，而“旷达度”偏低。你的情感雷达比别人多几个频道，能接收到更远的哭声。你放不下，不是走不出来，是选择不麻木。","mainText":"你是那种看天气预报都会担心远方麦子收成的人。不是矫情，是你的雷达天生比别人多几个频道。朋友圈里转发深度报道的人是你，大家都沉默时站出来说公道话的人也是你。","soulQuote":"世上疮痍，诗中圣哲。","empathy":"其实我们知道。你很少喊累，怕一喊那口气就泄了。一千二百年前，有个人住着漏雨的茅屋，却写“大庇天下寒士俱欢颜”。他被称为诗圣，不是因为诗最好，是因为心装得最多。你的累，是因为你的心里住着一整个天下。","ending":"今天，你也为这个世界操心了吗？辛苦了，歇会儿。天塌下来有高个子顶着，但高个子也需要睡觉。你就是那个高个子，去睡吧。","shareCard":"我测出来是家国砥柱·杜甫型。他说我“今天，你也为这个世界操心了吗”。你呢？"},
+        {"poet":"陶渊明","typeName":"归去来兮","word":"归","message":"你看懂了游戏规则，然后礼貌地退出了。不想上班是正常的，陶渊明也不想。","reason":"你的“旷达度”和“孤绝度”都很高，而“入世度”偏低。面对外界的卷，你的选择不是硬扛，而是退出——这不是逃避，是清醒。你把能量从外部竞争收回内心世界，在那里建了一座南山。","mainText":"你是那种在群里永远潜水、但内心比谁都丰富的人。早就看穿了那场叫“内卷”的游戏，礼貌地退出了比赛，不是玩不起，是觉得奖品没什么吸引力。快乐不需要观众。菊花开着，南风吹着，Wi-Fi满格，猫在打盹——够了。","soulQuote":"久在樊笼里，复得返自然。","empathy":"其实我们知道。你不是懒，是真想明白了。被说不上进，你笑笑，心里想：往上走，走到哪算头？一千六百年前，有人当了八十多天县令，说“不为五斗米折腰”，就真的回家种田了。种得不太好，草盛豆苗稀。但他活得很好。你不是逃避，是看懂了规则，礼貌退出。","ending":"不想上班？正常的。陶渊明也不想。他不是懒，他是算明白了账。你也是。","shareCard":"我测出来是归去来兮·陶渊明型。他说我“不想上班？正常的，陶渊明也不想”。你呢？"},
+        {"poet":"李清照","typeName":"玲珑词心","word":"敏","message":"你的敏感不是脆弱，是感知世界的像素比别人高。九百年前有人也这么活着，她婉约到极致，也刚烈到极致。","reason":"你的“深情度”顶格，“风骨度”和“率性度”也远高于均值。你的情绪触角极其灵敏，能从落叶读到别离，从秋风嗅到往事。但别被你的温柔骗了——你的骨头很硬，只是选择了用温柔示人。","mainText":"你是那种看起来很好说话、但触及底线时让人吓一跳的人。内心是一座巨大的私人图书馆。天赋是感知力和表达力。适合内容创作、心理咨询、品牌策划。","soulQuote":"何须浅碧深红色，自是花中第一流。","empathy":"其实我们知道。被说想太多。你不是想太多，是看得太清楚。九百年前，有人写“才下眉头，却上心头”，写“生当作人杰”。婉约到极致，也刚烈到极致。你的敏感不是脆弱，是感知世界的像素比别人高。","ending":"那些说你“想太多”的人，只是脑子转得太慢。你的敏感是你感知世界的超清镜头，别为了合群把像素调低。","shareCard":"我测出来是玲珑词心·李清照型。她说我“想太多？只是脑子转得太快”。你呢？"},
+        {"poet":"辛弃疾","typeName":"挑灯看剑","word":"憋","message":"你的不甘心，是你还没有找到属于你的战场。别急，战场可能还在加载中。","reason":"你的“入世度”“气象度”“深情度”“风骨度”都很高，但“旷达度”偏低。你心里有一整支军队，但手边只有一把钝剑。你不是没能力，是能量太足而接口太少。你的不甘心，恰恰证明你还在乎。","mainText":"你是那种心里有一整支军队、但手边只有一把钝剑的人。有太多想改变的局面。夜深人静时会在脑子里把人生重演一遍，在那个版本里你从未输过。","soulQuote":"醉里挑灯看剑，梦回吹角连营。","empathy":"其实我们知道。你不甘心。八百年前，有人二十岁带五十人冲进五万敌营活捉叛将，以为会收复山河，结果被闲置四十年。他把那团火写成了词。你的不甘心，是你还没有找到属于你的战场。","ending":"别急。你的战场可能还在加载中。但在那之前，剑要每天擦，马要每天喂。加载完成的那一刻，你要第一个冲进去。","shareCard":"我测出来是挑灯看剑·辛弃疾型。他说我“别急，战场可能还在加载中”。你呢？"},
+        {"poet":"王维","typeName":"坐看云起","word":"空","message":"人间很吵？别怕，你心里有座空山。一千三百年前有人在终南山里也这么活着。","reason":"你的“天地度”顶格，“旷达度”和“孤绝度”都很高。你对热闹天然免疫，不是因为不合群，是频率不同。你可以在最嘈杂的环境里给自己创造一间安静的书房。","mainText":"你是那种在最热闹的局里能一个人静静出神的人。人生哲学：行到水穷处，坐看云起时。不是不努力，是不强求。适合需要深度专注的工作：设计师、摄影师、程序员、研究员。","soulQuote":"空山不见人，但闻人语响。","empathy":"其实我们知道。被说高冷，你只是觉得有些话不值得说。一千三百年前，有人半官半隐，白天上班，晚上住终南山。写“行到水穷处，坐看云起时”，不是风景，是心境。你的安静不是无话可说，是话都讲给了山和水。","ending":"人间很吵？别怕，你心里有座空山。不用告诉所有人进山的路。懂的人，自然会找到那条小径。","shareCard":"我测出来是坐看云起·王维型。他说我“人间很吵？别怕，你心里有座空山”。你呢？"},
+        {"poet":"屈原","typeName":"九死不悔","word":"纯","message":"你的认真，是这个时代最稀缺的奢侈品。理想很贵，但你的命更贵。","reason":"你的“入世度”“深情度”“风骨度”“孤绝度”全部顶格，而“旷达度”极低。你是一条清澈的河流，宁肯撞碎在悬崖，也不愿和泥沙一起干涸。你的标准太高，对世界高，对自己更苛刻。","mainText":"你是那种会为一个信念赌上全部的人。容不下苟且和“差不多”。身上有一种这时代稀缺的品质：认真。认真到让人有点心疼。适合学术、公益、独立艺术。","soulQuote":"亦余心之所善兮，虽九死其犹未悔。","empathy":"其实我们知道。被说太理想主义。试过妥协，每次都觉得心里少了一块。两千三百年前，有人把所有忠诚和理想写进诗里，抱着石头走进汨罗江。你可以不赞同选择，但不能不被纯粹震撼。你的认真，是这个时代最稀缺的奢侈品。","ending":"理想很贵，但你的命更贵。留得青山在，不怕没香草。香草年年都会长，但你只有一个。你是种香草的人，不是香草本身。","shareCard":"我测出来是九死不悔·屈原型。他说我“理想很贵，但你的命更贵”。你呢？"},
+        {"poet":"李煜","typeName":"词帝赤子","word":"真","message":"你把苦酿成了词，后人喝着你的词，尝到了自己的滋味。人间不值得你写那么多愁，但谢谢你写了。","reason":"你的“深情度”顶格，“率性度”极高，而“入世度”和“旷达度”偏低。你不是不会算计，是懒得算。你把整个人生活成了一首词，喜怒哀乐全摊在纸上，像一个孩子把糖果倒在桌面。","mainText":"你是那种把整个人生活成一首词的人。不是看不懂局势，是觉得局势配不上你的真心。天生是艺术家。做任何需要真情流露的事：写歌、画画、音乐、影像。","soulQuote":"问君能有几多愁，恰似一江春水向东流。","empathy":"其实我们知道。被说太情绪化。心事写在脸上，悲伤写进字里。一千多年前，有人做了皇帝却满脑子是词，亡国被软禁，写出最动人的句子。王国维说他有一颗“赤子之心”。你的“不成熟”，是你身上最珍贵的东西。别丢了。","ending":"人间不值得你写那么多愁。但谢谢你写了。你把苦酿成了词，后人喝着你的词，尝到了自己的滋味。这是一件了不起的事。","shareCard":"我测出来是词帝赤子·李煜型。他说我“人间不值得写那么多愁，但谢谢你写了”。你呢？"},
+        {"poet":"白居易","typeName":"老妪能解","word":"通","message":"你把人话说得这么好，是因为心里装着人。把复杂变简单，是严重被低估的天赋。","reason":"你的各维度比较均衡，“入世度”和“机趣度”偏高。你不喜欢故弄玄虚，天赋是把深刻翻译成常识，把高雅变成日常快乐。大家爱跟你做朋友，因为你不端着。","mainText":"你是那种能把复杂道理讲得连保安大爷都听得懂的人。像冬天一件穿旧了的棉袄——舒服、暖和、自在。天生产品经理、教育者、科普作家。","soulQuote":"野火烧不尽，春风吹又生。","empathy":"其实我们知道。你可能觉得自己没什么特别。但让复杂变简单，是严重被低估的天赋。一千二百年前，有人写完诗先念给老太太听，听不懂就改。离离原上草，三岁小孩都能背。用最朴素的话说最真的道理。","ending":"你讲话，连老太太都爱听。这是极高的天赋。把复杂的事讲简单，把高深的事讲亲切——这世界需要更多你这样的人。","shareCard":"我测出来是老妪能解·白居易型。他说我“你讲话，连老太太都爱听”。你呢？"},
+        {"poet":"李商隐","typeName":"锦瑟无端","word":"隐","message":"你的欲言又止，是因为想说的太重了。你今天发的那个句号，是不是在暗示什么？","reason":"你的“深情度”极高，“孤绝度”也很高。你的情感世界像层层密码本，表面一层，底下九层。你喜欢暗示和留白，享受心照不宣的默契，也苦恼没人穿过迷雾看到最里面的你。","mainText":"你是那种发朋友圈总有一部分内容只写给一个人看的人。说“今天天气不错”可能包含千言万语。天赋是制造氛围感、隐喻、“未尽之言”。","soulQuote":"此情可待成追忆，只是当时已惘然。","empathy":"其实我们知道。不喜欢把话说太明白。把心事藏在字缝里，等一个能发现的人。等不到就把话再往深处藏。一千一百年前，有人写《锦瑟》《无题》，写完不解释。后人猜了一千多年也没猜透。但每个人都觉得，他写的就是自己。","ending":"你今天发的那个句号，是不是在暗示什么？没关系，不用解释。懂的人会懂，不懂的人，解释了也不是那个意思。","shareCard":"我测出来是锦瑟无端·李商隐型。他说我“你今天发的那个句号，是不是在暗示什么”。你呢？"},
+        {"poet":"柳宗元","typeName":"寒江独钓","word":"独","message":"你的孤独，是你主动选择的清醒。今日寒江雪，你钓到自己了吗？","reason":"你的“入世度”“孤绝度”“风骨度”都很高。你经历过事情，看透过人。不喜欢解释，不抱团取暖。把孤独当修行，冷清当保护色。","mainText":"你是那种在热闹合影里最安静、但心里最有数的人。像漫天大雪的江面独自垂钓的渔翁。钓的不是鱼，是心境。不喜欢无效社交。需要能独立完成且被尊重专业性的工作。","soulQuote":"孤舟蓑笠翁，独钓寒江雪。","empathy":"其实我们知道。被误解过。沉默被当冷漠，独处被当孤僻。宁愿把话说给雪听，说给不存在的鱼听。一千二百年前，有人被贬永州，写独钓寒江雪。画里只有一个人，却温暖了此后千年所有孤独的人。你的孤独，是你主动选择的清醒。","ending":"今日寒江雪，你钓到自己了吗？没钓到也没关系。江雪年年有，你年年可以来。这张钓竿，永远是你的。","shareCard":"我测出来是寒江独钓·柳宗元型。他说我“今日寒江雪，你钓到自己了吗”。你呢？"},
+        {"poet":"杜牧","typeName":"落拓风流","word":"逸","message":"你的潇洒，是给自己留的余地。认真你就输了，但不认真连输的资格都没有。","reason":"你的“机趣度”和“率性度”偏高，各维度相对均衡。有济世之心无殉道之志，有深情之痛无沉溺之态。在入世和出世之间找到了一条钢丝——不太远不太近，随时可以抽身。","mainText":"你是那种一边认真活，一边觉得“认真就输了”的人。身上有迷人的矛盾感。朋友觉得你风流倜傥，但你自己知道，洒脱里藏着不肯说的事。","soulQuote":"十年一觉扬州梦，赢得青楼薄幸名。","empathy":"其实我们知道。不喜欢被看透。习惯在认真时装不认真，深情时装无所谓。一千二百年前，有人写“商女不知亡国恨”，写“十年一觉扬州梦”。好像什么都看透，又好像什么都还在乎。那是有节制的深情。","ending":"认真你就输了，但不认真连输的资格都没有。所以你选择在该认真的时候认真，在该放手的时候放手。这是智慧，不是油滑。","shareCard":"我测出来是落拓风流·杜牧型。他说我“认真你就输了，但不认真连输的资格都没有”。你呢？"},
+        {"poet":"陆游","typeName":"铁马冰河","word":"痴","message":"有些事，坚持一辈子，也挺酷的。哪怕最后没成，你也是那个把火炬举到最后的人。","reason":"你的“入世度”“深情度”“风骨度”都很高。你能把一件事坚持一辈子，对理想如此，对感情也是。知道世界很难改变，但知道之后依然坚持。不是傻，是放下了就不再是你。","mainText":"你是那种能把一件事坚持一辈子的人。身上有一种老派的浪漫。执着和深情是同一种东西——不肯放弃。","soulQuote":"夜阑卧听风吹雨，铁马冰河入梦来。","empathy":"其实我们知道。被说固执，放不下。但就是放不下，因为那些东西是你之所以是你的理由。八百年前，有人一生主张北伐至死不改，一生怀念一个人至死不渝。痴是深情的另一种写法。","ending":"有些事，坚持一辈子，也挺酷的。哪怕最后没成，你也是那个把火炬举到最后的人。火光会照亮后来者的路。","shareCard":"我测出来是铁马冰河·陆游型。他说我“有些事，坚持一辈子，也挺酷的”。你呢？"},
+        {"poet":"曹植","typeName":"才高八斗","word":"郁","message":"才华这东西，有了未必快乐，但没有一定不快乐。学会戴着镣铐飞，是你一生的课题。","reason":"你的“深情度”“率性度”“气象度”都很高，“旷达度”偏低。才华撑得起野心，但命运配不上才华。生来比别人快一步，但路总是不太顺。心里有团火烧了很多年。","mainText":"你是那种才华撑得起野心、但命运配不上才华的人。不是不努力，是老天开了太多门，每扇门后都有一堵墙。天赋显而易见，挑战是找到容纳天赋的容器。","soulQuote":"本是同根生，相煎何太急。","empathy":"其实我们知道。从小被说聪明。但聪明没让你更轻松，反而看到更多不公平和“本可以”。一千八百年前，有人才高八斗七步成诗，却一生困于权力漩涡。写《洛神赋》，写永远追不到的身影。那是所有求而不得的总和。","ending":"才华这东西，有了未必快乐，但没有一定不快乐。你的才华是你背上的翅膀，也是脚上的镣铐。学会戴着镣铐飞，是你一生的课题。","shareCard":"我测出来是才高八斗·曹植型。他说我“才华这东西，有了未必快乐”。你呢？"},
+        {"poet":"温庭筠","typeName":"花间绮丽","word":"绮","message":"你把日子过得这么好看，也是一种本事。世界粗糙，你是那个偷偷给它上色的人。","reason":"你的“深情度”和“率性度”很高，“风骨度”偏低。你把美当作信仰，感知世界通过颜色、声音、气味、质地。活得很“轻”，是轻盈的轻。不喜欢沉重话题和道德绑架。轻盈也是一种力量。","mainText":"你是那种把美当作信仰的人。不需要宏大叙事，一朵花一首词一段旋律就够沉浸整个下午。适合和美有关的一切：设计、花艺、香氛、美妆、音乐、文创。","soulQuote":"小山重叠金明灭，鬓云欲度香腮雪。","empathy":"其实我们知道。被说肤浅，不接地气。只是觉得人生够苦了，把目光转向美不是逃避，是生存策略。一千一百年前，有人写词全是香腮云鬓画屏金鹧鸪。他把所有对美的感知倾注词里，成了花间词派开山。","ending":"你把日子过得这么好看，也是一种本事。世界粗糙，你是那个偷偷给它上色的人。别停，继续画。","shareCard":"我测出来是花间绮丽·温庭筠型。他说我“把日子过得这么好看，也是一种本事”。你呢？"}
+      ],
+      "footer": "文魂·中国士人人格谱系 / 古BTI\n版本：暗黑国风最终版\n\n本测试通过九个维度匹配十六位中国古代文人。结果反映测试者与特定文人精神气质的相似度，非学术诊断，仅供文化体验与自我探索。\n\n致敬所有在九百年前、一千二百年前、两千三百年前活过、写过、扛过、飞过的人。人间有你，幸会。\n\n作者：长颈鹿"
+    };
+
+    // 九维维度名称
+    const dimensionNames = [
+      "入世度", "旷达度", "气象度", "率性度", "深情度",
+      "风骨度", "机趣度", "孤绝度", "天地度"
+    ];
+
+    // 文人九维基准分（1-5分制）
+    const poetBenchmarks = {
+      "苏轼": [4.8,5.0,3.2,4.2,3.5,3.0,5.0,2.5,3.2],
+      "李白": [3.0,4.2,5.0,5.0,3.8,3.5,4.5,3.0,5.0],
+      "杜甫": [5.0,2.0,4.5,2.0,5.0,5.0,2.0,2.0,3.0],
+      "陶渊明": [1.0,5.0,2.0,3.5,3.0,2.5,3.0,5.0,4.0],
+      "李清照": [3.0,3.5,2.5,4.5,5.0,4.8,3.0,3.0,2.5],
+      "辛弃疾": [5.0,2.0,5.0,3.0,4.8,5.0,2.0,3.5,3.5],
+      "王维": [2.0,4.8,2.5,2.0,2.5,2.0,2.0,5.0,5.0],
+      "屈原": [5.0,1.0,4.5,2.0,5.0,5.0,1.0,5.0,4.5],
+      "李煜": [2.0,2.0,3.0,5.0,5.0,2.0,2.0,3.0,3.0],
+      "白居易": [4.5,4.0,3.0,3.0,3.5,3.0,5.0,2.0,2.5],
+      "李商隐": [2.5,3.0,2.5,3.5,5.0,3.0,2.0,5.0,3.0],
+      "柳宗元": [4.5,3.0,3.0,2.0,3.5,5.0,1.0,5.0,2.5],
+      "杜牧": [3.5,4.0,3.0,4.8,3.5,3.0,5.0,3.0,3.0],
+      "陆游": [5.0,2.0,3.0,2.0,5.0,5.0,2.0,3.0,2.5],
+      "曹植": [3.0,2.0,5.0,5.0,5.0,3.5,2.0,3.0,4.0],
+      "温庭筠": [2.0,3.5,2.0,5.0,5.0,2.0,4.0,2.0,2.0]
+    };
+
+    let current = 0;
+    let answers = [];
+    let userDimensions = [];
+
+    // 初始化
+    document.getElementById('introduction').innerText = data.introduction;
+    document.getElementById('notice').innerText = data.notice;
+    document.getElementById('footer').innerText = data.footer;
+
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function startTest() {
+      current = 0;
+      answers = [];
+      userDimensions = [];
+      renderQuestion();
+      showPage('page-test');
+    }
+
+    function renderQuestion() {
+      const q = data.questions[current];
+      document.getElementById('section').innerText = q.section;
+      document.getElementById('question').innerText = q.title;
+      const opts = document.getElementById('options');
+      opts.innerHTML = '';
+      q.options.forEach((opt, i) => {
+        const div = document.createElement('div');
+        div.className = 'option';
+        div.innerText = opt;
+        div.onclick = () => {
+          document.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+          div.classList.add('selected');
+          answers[current] = i + 1;
+        };
+        opts.appendChild(div);
+      });
+      document.getElementById('progress').style.width = ((current+1)/24*100) + '%';
+    }
+
+    function nextQuestion() {
+      if (answers[current] === undefined) return alert('请选择一个选项');
+      
+      // 测谎题处理
+      if (current === 23 && answers[23] === 5) {
+        document.getElementById('lie-tip').innerText = data.questions[23].lieTip;
+        showPage('page-lie');
+        return;
+      }
+
+      current++;
+      if (current >= 24) {
+        calculate();
+        return;
+      }
+      renderQuestion();
+    }
+
+    // 计算九维得分 + 匹配文人
+    function calculate() {
+      const reverse = data.reverseQuestions;
+      // 九维得分映射（题目ID对应维度）
+      const dimMap = [
+        [1,2,3],    // 入世度
+        [4],        // 旷达度
+        [5,6,7],    // 气象度
+        [8,13,15],  // 率性度
+        [9,11,21],  // 深情度
+        [10,12],    // 风骨度
+        [16,19],    // 机趣度
+        [14,17],    // 孤绝度
+        [18,20,22,23] // 天地度
+      ];
+
+      // 计算用户九维得分
+      userDimensions = dimMap.map((qs, d) => {
+        let sum = 0;
+        qs.forEach(qid => {
+          const idx = qid - 1;
+          let v = answers[idx];
+          if (reverse.includes(qid)) v = 6 - v;
+          sum += v;
+        });
+        return Math.min(5, Math.max(1, sum / qs.length));
+      });
+
+      // 余弦相似度匹配最相似文人
+      let bestPoet = '';
+      let maxSimilarity = -1;
+      for (let poet in poetBenchmarks) {
+        const sim = cosineSimilarity(userDimensions, poetBenchmarks[poet]);
+        if (sim > maxSimilarity) {
+          maxSimilarity = sim;
+          bestPoet = poet;
+        }
+      }
+
+      // 渲染结果
+      const res = data.resultsFullText.find(x => x.poet === bestPoet);
+      document.getElementById('r-word').innerText = res.word;
+      document.getElementById('r-name').innerText = res.typeName;
+      document.getElementById('r-poet').innerText = res.poet;
+      document.getElementById('r-msg').innerText = res.message;
+      document.getElementById('r-reason').innerText = res.reason;
+      document.getElementById('r-main').innerText = res.mainText;
+      document.getElementById('r-quote').innerText = res.soulQuote;
+      document.getElementById('r-empathy').innerText = res.empathy;
+      document.getElementById('r-ending').innerText = res.ending;
+      window.shareText = res.shareCard;
+
+      // 渲染九维雷达图
+      renderRadarChart(userDimensions);
+
+      showPage('page-result');
+    }
+
+    // 余弦相似度计算
+    function cosineSimilarity(a, b) {
+      let dot = 0, magA = 0, magB = 0;
+      for (let i = 0; i < a.length; i++) {
+        dot += a[i] * b[i];
+        magA += a[i] ** 2;
+        magB += b[i] ** 2;
+      }
+      return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+    }
+
+    // 渲染九维雷达图
+    function renderRadarChart(scores) {
+      const chartDom = document.getElementById('radar-chart');
+      const myChart = echarts.init(chartDom, 'dark');
+      const option = {
+        radar: {
+          indicator: dimensionNames.map(name => ({ name, max: 5 })),
+          splitArea: {
+            areaStyle: {
+              color: ['#1E1E1E', '#1E1E1E', '#1E1E1E', '#1E1E1E', '#1E1E1E']
+            }
+          },
+          axisLine: {
+            lineStyle: {
+              color: '#333333'
+            }
+          },
+          splitLine: {
+            lineStyle: {
+              color: '#333333'
+            }
+          },
+          name: {
+            color: '#E6E6E6',
+            fontSize: 12
+          }
+        },
+        series: [{
+          type: 'radar',
+          data: [{
+            value: scores,
+            name: '你的人格',
+            areaStyle: {
+              color: 'rgba(196, 60, 60, 0.3)'
+            },
+            lineStyle: {
+              color: '#C43C3C',
+              width: 2
+            },
+            itemStyle: {
+              color: '#C43C3C'
+            }
+          }]
+        }]
+      };
+      myChart.setOption(option);
+      // 响应式
+      window.addEventListener('resize', () => myChart.resize());
+    }
+
+    function shareResult() {
+      document.getElementById('share-text').innerText = shareText;
+    }
+  </script>
+</body>
+</html>
